@@ -94,10 +94,9 @@ function incomingNotification(overrides?: {
 
 async function mockReceiveQueue(page: Page, items: unknown[]) {
   const deletedUrls: string[] = [];
-  let index = 0;
 
   await page.route("**/receiveNotification/**", async (route) => {
-    const item = index < items.length ? items[index++] : undefined;
+    const item = items.shift();
 
     if (item === undefined) {
       await route.fulfill({ status: 200, body: "" });
@@ -236,6 +235,102 @@ test.describe("Chat page", () => {
     expect(sent).toBe(false);
   });
 
+  test("should keep the last message near the composer when the thread overflows", async ({
+    page,
+  }) => {
+    let sendCount = 0;
+
+    await page.route("**/sendMessage/**", async (route) => {
+      sendCount += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        json: { idMessage: `OUT${sendCount}` },
+      });
+    });
+
+    const composer = page.getByRole("textbox", { name: "Message" });
+    const send = page.getByRole("button", { name: "Send" });
+    const overflowLineCount = 16;
+
+    for (let index = 1; index <= overflowLineCount; index += 1) {
+      await composer.fill(`line-${index}`);
+      await send.click();
+      await expect(composer).toHaveValue("");
+    }
+
+    const lastLine = `line-${overflowLineCount}`;
+    const lastMessage = page.locator('[data-slot="message"]').filter({ hasText: lastLine });
+    const viewport = page.locator('[data-slot="message-scroller-viewport"]');
+
+    await expect(lastMessage).toBeVisible();
+    await expect
+      .poll(async () => viewport.evaluate((element) => element.scrollHeight > element.clientHeight))
+      .toBe(true);
+    await expect
+      .poll(async () => viewport.evaluate((element) => getComputedStyle(element).scrollbarWidth))
+      .toBe("none");
+
+    const lastBox = await lastMessage.boundingBox();
+    const composerBox = await composer.boundingBox();
+
+    expect(lastBox).not.toBeNull();
+    expect(composerBox).not.toBeNull();
+    expect(composerBox!.y - (lastBox!.y + lastBox!.height)).toBeLessThan(80);
+  });
+
+  test("should pin the sent message near the composer after scrolling up", async ({ page }) => {
+    let sendCount = 0;
+
+    await page.route("**/sendMessage/**", async (route) => {
+      sendCount += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        json: { idMessage: `OUT${sendCount}` },
+      });
+    });
+
+    const composer = page.getByRole("textbox", { name: "Message" });
+    const send = page.getByRole("button", { name: "Send" });
+    const overflowLineCount = 16;
+
+    for (let index = 1; index <= overflowLineCount; index += 1) {
+      await composer.fill(`line-${index}`);
+      await send.click();
+      await expect(composer).toHaveValue("");
+    }
+
+    const viewport = page.locator('[data-slot="message-scroller-viewport"]');
+
+    await expect
+      .poll(async () => viewport.evaluate((element) => element.scrollHeight > element.clientHeight))
+      .toBe(true);
+
+    await viewport.evaluate((element) => {
+      element.scrollTop = 0;
+    });
+    await expect.poll(async () => viewport.evaluate((element) => element.scrollTop)).toBe(0);
+
+    await composer.fill("from-history");
+    await send.click();
+    await expect(composer).toHaveValue("");
+
+    const lastMessage = page.locator('[data-slot="message"]').filter({ hasText: "from-history" });
+
+    await expect(lastMessage).toBeVisible();
+    await expect
+      .poll(async () => {
+        const lastBox = await lastMessage.boundingBox();
+        const composerBox = await composer.boundingBox();
+
+        if (lastBox === null || composerBox === null) return Number.POSITIVE_INFINITY;
+
+        return composerBox.y - (lastBox.y + lastBox.height);
+      })
+      .toBeLessThan(80);
+  });
+
   test("should keep the draft and show a toast when send fails", async ({ page }) => {
     await mockSendMessage(page, 400, { error: "Bad Request" });
 
@@ -265,6 +360,70 @@ test.describe("Chat page receiving", () => {
     await expect
       .poll(() => deletedUrls.some((url) => url.includes(`/${mockReceiptId}`)))
       .toBe(true);
+  });
+
+  test("should keep an incoming message near the composer when already at the live edge", async ({
+    page,
+  }) => {
+    const receiveQueue: unknown[] = [];
+    await mockReceiveQueue(page, receiveQueue);
+
+    let sendCount = 0;
+
+    await page.route("**/sendMessage/**", async (route) => {
+      sendCount += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        json: { idMessage: `OUT${sendCount}` },
+      });
+    });
+
+    await openChat(page);
+
+    const composer = page.getByRole("textbox", { name: "Message" });
+    const send = page.getByRole("button", { name: "Send" });
+    const overflowLineCount = 16;
+
+    for (let index = 1; index <= overflowLineCount; index += 1) {
+      await composer.fill(`line-${index}`);
+      await send.click();
+      await expect(composer).toHaveValue("");
+    }
+
+    const viewport = page.locator('[data-slot="message-scroller-viewport"]');
+
+    await expect
+      .poll(async () => viewport.evaluate((element) => element.scrollHeight > element.clientHeight))
+      .toBe(true);
+
+    await viewport.evaluate((element) => {
+      element.dispatchEvent(new WheelEvent("wheel", { deltaY: 40, bubbles: true }));
+    });
+
+    receiveQueue.push(
+      incomingNotification({
+        idMessage: "IN-LIVE-EDGE",
+        receiptId: 7654321,
+        text: "live-edge-incoming",
+      }),
+    );
+
+    const lastMessage = page
+      .locator('[data-slot="message"]')
+      .filter({ hasText: "live-edge-incoming" });
+
+    await expect(lastMessage).toBeVisible();
+    await expect
+      .poll(async () => {
+        const lastBox = await lastMessage.boundingBox();
+        const composerBox = await composer.boundingBox();
+
+        if (lastBox === null || composerBox === null) return Number.POSITIVE_INFINITY;
+
+        return composerBox.y - (lastBox.y + lastBox.height);
+      })
+      .toBeLessThan(80);
   });
 
   test("should show incoming text when the webhook chatId is the phone JID", async ({ page }) => {

@@ -1,6 +1,7 @@
 import { wrap } from "@reatom/core";
 import { reatomComponent } from "@reatom/react";
 import { ArrowUpIcon, MessageCircleDashedIcon } from "lucide-react";
+import { useLayoutEffect, useRef } from "react";
 import { Bubble, BubbleContent } from "@/shared/components/ui/bubble";
 import { Card, CardContent, CardFooter } from "@/shared/components/ui/card";
 import {
@@ -24,9 +25,35 @@ import {
   MessageScrollerItem,
   MessageScrollerProvider,
   MessageScrollerViewport,
+  useMessageScroller,
+  useMessageScrollerScrollable,
 } from "@/shared/components/ui/message-scroller";
 import { Spinner } from "@/shared/components/ui/spinner";
 import { messages, newMessage, type ChatMessage } from "../model/chat";
+
+function FollowLiveEdge({
+  count,
+  lastFrom,
+}: {
+  count: number;
+  lastFrom: ChatMessage["from"] | undefined;
+}) {
+  const { scrollToEnd } = useMessageScroller();
+  const { end } = useMessageScrollerScrollable();
+  const atLiveEdgeRef = useRef(true);
+
+  useLayoutEffect(() => {
+    atLiveEdgeRef.current = !end;
+  }, [end]);
+
+  useLayoutEffect(() => {
+    if (count === 0) return;
+
+    if (lastFrom === "outgoing" || atLiveEdgeRef.current) scrollToEnd({ behavior: "auto" });
+  }, [count, lastFrom, scrollToEnd]);
+
+  return null;
+}
 
 function ChatBubble({ message }: { message: ChatMessage }) {
   const paragraphs = message.text
@@ -37,7 +64,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
   const variant = message.from === "outgoing" ? "muted" : "default";
 
   return (
-    <MessageScrollerItem messageId={message.id} scrollAnchor>
+    <MessageScrollerItem messageId={message.id}>
       <Message align={align}>
         <MessageContent>
           <Bubble variant={variant} align={align}>
@@ -82,6 +109,10 @@ export const ChatPage = reatomComponent(() => {
                     </MessageScrollerContent>
                   </MessageScrollerViewport>
                   <MessageScrollerButton />
+                  <FollowLiveEdge
+                    count={chatMessages.length}
+                    lastFrom={chatMessages.at(-1)?.from}
+                  />
                 </MessageScroller>
               )}
             </CardContent>
