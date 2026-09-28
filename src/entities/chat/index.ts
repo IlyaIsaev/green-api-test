@@ -1,1 +1,1 @@
-export { chatId } from "./model/chat";
+export { chatId, phoneNumber } from "./model/chat";

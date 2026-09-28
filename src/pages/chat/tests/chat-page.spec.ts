@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 const mockIdInstance = "1234567890";
 const mockApiTokenInstance = "test-token";
 const mockChatId = "123456789012345@lid";
+const mockPhoneChatId = "12133734253@c.us";
 const mockIdMessage = "1763115112345";
 const mockReceiptId = 1234567;
 const mockIncomingIdMessage = "INCOMING1";
@@ -264,6 +265,40 @@ test.describe("Chat page receiving", () => {
     await expect
       .poll(() => deletedUrls.some((url) => url.includes(`/${mockReceiptId}`)))
       .toBe(true);
+  });
+
+  test("should show incoming text when the webhook chatId is the phone JID", async ({ page }) => {
+    const deletedUrls = await mockReceiveQueue(page, [
+      incomingNotification({ chatId: mockPhoneChatId, text: "from-phone-jid" }),
+    ]);
+
+    await openChat(page);
+
+    await expect(page.getByText("No messages yet")).toHaveCount(0);
+    await expect(page.locator('[data-slot="message"][data-align="start"]')).toContainText(
+      "from-phone-jid",
+    );
+    await expect
+      .poll(() => deletedUrls.some((url) => url.includes(`/${mockReceiptId}`)))
+      .toBe(true);
+  });
+
+  test("should delete incoming text from another chat without showing it", async ({ page }) => {
+    const deletedUrls = await mockReceiveQueue(page, [
+      incomingNotification({
+        chatId: "999000111@c.us",
+        idMessage: "OTHER1",
+        text: "other-peer-text",
+      }),
+    ]);
+
+    await openChat(page);
+
+    await expect
+      .poll(() => deletedUrls.some((url) => url.includes(`/${mockReceiptId}`)))
+      .toBe(true);
+    await expect(page.getByText("No messages yet")).toBeVisible();
+    await expect(page.getByText("other-peer-text")).toHaveCount(0);
   });
 
   test("should delete non-incoming and file notifications without showing them", async ({

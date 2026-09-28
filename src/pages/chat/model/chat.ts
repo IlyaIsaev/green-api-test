@@ -11,7 +11,7 @@ import {
   wrap,
 } from "@reatom/core";
 import * as v from "valibot";
-import { chatId } from "@/entities/chat";
+import { chatId, phoneNumber } from "@/entities/chat";
 import { toast } from "@/shared/components/ui/toast";
 import { apiTokenInstance, idInstance } from "@/shared/green-api";
 import { deleteNotification } from "../api/delete-notification";
@@ -36,13 +36,24 @@ const incomingMessageBodySchema = v.object({
   }),
 });
 
-// Never use sender chatId and currentChatId for chat-message validation.
-function incomingChatMessage(body: unknown, currentChatId: string): ChatMessage | null {
+// Bind on conversation id (senderData.chatId), not sender. Match CheckWhatsapp lid and phone @c.us.
+function incomingChatMessage(
+  body: unknown,
+  currentChatId: string,
+  currentPhoneNumber: string,
+): ChatMessage | null {
   if (!currentChatId) return null;
 
   const parsed = v.safeParse(incomingMessageBodySchema, body);
 
   if (!parsed.success) return null;
+
+  const conversationId = parsed.output.senderData.chatId;
+  const isSelectedChat =
+    conversationId === currentChatId ||
+    (currentPhoneNumber !== "" && conversationId === `${currentPhoneNumber}@c.us`);
+
+  if (!isSelectedChat) return null;
 
   const text =
     parsed.output.messageData.textMessageData?.textMessage ??
@@ -104,7 +115,11 @@ export const messages = atom<ChatMessage[]>([], "messages")
           );
 
           if (notification) {
-            const incoming = incomingChatMessage(notification.body, chatId().trim());
+            const incoming = incomingChatMessage(
+              notification.body,
+              chatId().trim(),
+              phoneNumber().trim(),
+            );
 
             if (incoming) {
               target.set((list) =>

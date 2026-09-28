@@ -1,22 +1,12 @@
-import {
-  abortVar,
-  atom,
-  computed,
-  reatomField,
-  reatomForm,
-  withCallHook,
-  wrap,
-} from "@reatom/core";
+import { abortVar, computed, reatomField, reatomForm, withCallHook, wrap } from "@reatom/core";
 import { isValidPhoneNumber, parsePhoneNumberFromString } from "libphonenumber-js/max";
 import * as v from "valibot";
 import { chatRoute } from "@/app/routes";
-import { chatId } from "@/entities/chat";
+import { chatId, phoneNumber } from "@/entities/chat";
 import { resetConversation } from "@/pages/chat/model/chat";
 import { toast } from "@/shared/components/ui/toast";
 import { apiTokenInstance, idInstance } from "@/shared/green-api";
 import { checkAccount } from "../api/check-account";
-
-export const phoneNumber = atom("", "phoneNumber");
 
 function toInternational(input: string): string {
   return input.startsWith("+") ? input : `+${input}`;
