@@ -1,6 +1,6 @@
 import { atom } from "@reatom/core";
 
-export const universalApiUrl = "https://api.greenapi.com";
+export const UNIVERSAL_API_URL = "https://api.greenapi.com" as const;
 
 export const idInstance = atom("", "idInstance");
 export const apiTokenInstance = atom("", "apiTokenInstance");

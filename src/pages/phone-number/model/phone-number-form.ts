@@ -3,7 +3,7 @@ import { isValidPhoneNumber, parsePhoneNumberFromString } from "libphonenumber-j
 import * as v from "valibot";
 import { chatRoute } from "@/app/routes";
 import { chatId, phoneNumber } from "@/entities/chat";
-import { resetConversation } from "@/pages/chat/model/chat";
+import { resetMessages } from "@/pages/chat/model/chat";
 import { toast } from "@/shared/components/ui/toast";
 import { apiTokenInstance, idInstance } from "@/shared/green-api";
 import { checkAccount } from "../api/check-account";
@@ -49,20 +49,19 @@ export const phoneNumberForm = reatomForm(
         }),
       );
 
-      if (account.existsWhatsapp !== true) {
-        throw new Error("This phone number is not registered");
-      }
+      if (account.existsWhatsapp !== true) throw new Error("This phone number is not registered");
 
-      const id = account.chatId?.trim();
+      const selectedChatId = account.chatId?.trim();
 
-      if (!id) throw new Error("Could not check phone number");
+      if (!selectedChatId) throw new Error("Could not check phone number");
 
       if (digits !== phoneNumber()) {
-        resetConversation();
+        resetMessages();
       }
 
-      chatId.set(id);
+      chatId.set(selectedChatId);
       phoneNumber.set(digits);
+
       chatRoute.go();
     },
   },

@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { universalApiUrl } from "@/shared/green-api";
+import { UNIVERSAL_API_URL } from "@/shared/green-api";
 
 const checkAccountResponseSchema = v.object({
   existsWhatsapp: v.optional(v.boolean()),
@@ -18,11 +18,11 @@ export async function checkAccount({
   apiTokenInstance,
   phoneNumber,
   signal,
-}: CheckAccount) {
+}: CheckAccount): Promise<v.InferOutput<typeof checkAccountResponseSchema>> {
   if (!idInstance || !apiTokenInstance) throw new Error("Missing Green API credentials");
 
   // WhatsApp instances 404 on checkAccount; checkWhatsapp is the equivalent.
-  const url = `${universalApiUrl}/waInstance${encodeURIComponent(idInstance)}/checkWhatsapp/${encodeURIComponent(apiTokenInstance)}`;
+  const url = `${UNIVERSAL_API_URL}/waInstance${encodeURIComponent(idInstance)}/checkWhatsapp/${encodeURIComponent(apiTokenInstance)}`;
 
   const response = await fetch(url, {
     method: "POST",

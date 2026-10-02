@@ -31,6 +31,9 @@ export const layoutRoute = reatomRoute({
   },
 });
 
+const hasGreenApiCredentials = (): boolean =>
+  idInstance().trim() !== "" && apiTokenInstance().trim() !== "";
+
 export const greenApiRoute = layoutRoute.reatomRoute({
   path: "green-api",
   render: () => <GreenApiPage />,
@@ -39,8 +42,9 @@ export const greenApiRoute = layoutRoute.reatomRoute({
 export const phoneNumberRoute = layoutRoute.reatomRoute({
   path: "phone-number",
   params() {
-    if (idInstance().trim() === "" || apiTokenInstance().trim() === "") {
+    if (!hasGreenApiCredentials()) {
       greenApiRoute.go(undefined, true);
+
       return null;
     }
 
@@ -52,8 +56,9 @@ export const phoneNumberRoute = layoutRoute.reatomRoute({
 export const chatRoute = layoutRoute.reatomRoute({
   path: "chat",
   params() {
-    if (idInstance().trim() === "" || apiTokenInstance().trim() === "" || chatId().trim() === "") {
+    if (!hasGreenApiCredentials() || chatId().trim() === "") {
       greenApiRoute.go(undefined, true);
+
       return null;
     }
 
@@ -62,7 +67,7 @@ export const chatRoute = layoutRoute.reatomRoute({
   render: () => <ChatPage />,
 });
 
-export function redirectToGreenApiOnLoad() {
+export function redirectToGreenApiOnLoad(): void {
   if (urlAtom().pathname === "/green-api") return;
 
   greenApiRoute.go(undefined, true);

@@ -22,6 +22,7 @@ import {
 import { Spinner } from "@/shared/components/ui/spinner";
 import { greenApiForm, isGreenApiFormValid } from "../model/green-api-form";
 
+// WebKit password-masking is not on CSSProperties
 const apiTokenInstanceStyle = { WebkitTextSecurity: "disc" } as unknown as CSSProperties;
 
 export const GreenApiPage = reatomComponent(() => {

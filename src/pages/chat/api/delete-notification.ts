@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { universalApiUrl } from "@/shared/green-api";
+import { UNIVERSAL_API_URL } from "@/shared/green-api";
 
 const deleteNotificationResponseSchema = v.object({
   result: v.boolean(),
@@ -17,10 +17,10 @@ export async function deleteNotification({
   apiTokenInstance,
   receiptId,
   signal,
-}: DeleteNotification) {
+}: DeleteNotification): Promise<v.InferOutput<typeof deleteNotificationResponseSchema>> {
   if (!idInstance || !apiTokenInstance) throw new Error("Missing Green API credentials");
 
-  const url = `${universalApiUrl}/waInstance${encodeURIComponent(idInstance)}/deleteNotification/${encodeURIComponent(apiTokenInstance)}/${encodeURIComponent(String(receiptId))}`;
+  const url = `${UNIVERSAL_API_URL}/waInstance${encodeURIComponent(idInstance)}/deleteNotification/${encodeURIComponent(apiTokenInstance)}/${encodeURIComponent(String(receiptId))}`;
 
   const response = await fetch(url, { method: "DELETE", signal });
 
@@ -32,9 +32,8 @@ export async function deleteNotification({
 
   const parsed = v.safeParse(deleteNotificationResponseSchema, body);
 
-  if (!parsed.success || parsed.output.result !== true) {
+  if (!parsed.success || parsed.output.result !== true)
     throw new Error("Could not receive message");
-  }
 
   return parsed.output;
 }

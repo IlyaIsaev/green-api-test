@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { universalApiUrl } from "@/shared/green-api";
+import { UNIVERSAL_API_URL } from "@/shared/green-api";
 
 const receiveNotificationResponseSchema = v.object({
   receiptId: v.number(),
@@ -14,14 +14,22 @@ type ReceiveNotification = {
   signal: AbortSignal;
 };
 
+const jsonFromText = (text: string): unknown => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
 export async function receiveNotification({
   idInstance,
   apiTokenInstance,
   signal,
-}: ReceiveNotification) {
+}: ReceiveNotification): Promise<v.InferOutput<typeof receiveNotificationResponseSchema> | null> {
   if (!idInstance || !apiTokenInstance) throw new Error("Missing Green API credentials");
 
-  const url = `${universalApiUrl}/waInstance${encodeURIComponent(idInstance)}/receiveNotification/${encodeURIComponent(apiTokenInstance)}?receiveTimeout=${RECEIVE_TIMEOUT_SECONDS}`;
+  const url = `${UNIVERSAL_API_URL}/waInstance${encodeURIComponent(idInstance)}/receiveNotification/${encodeURIComponent(apiTokenInstance)}?receiveTimeout=${RECEIVE_TIMEOUT_SECONDS}`;
 
   const response = await fetch(url, { method: "GET", signal });
 
@@ -31,13 +39,7 @@ export async function receiveNotification({
 
   if (!text.trim()) return null;
 
-  let payload: unknown;
-
-  try {
-    payload = JSON.parse(text);
-  } catch {
-    return null;
-  }
+  const payload = jsonFromText(text);
 
   if (payload === null) return null;
 

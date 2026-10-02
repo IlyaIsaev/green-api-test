@@ -1,12 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const mockIdInstance = "1234567890";
-const mockApiTokenInstance = "test-token";
-const mockChatId = "123456789012345@lid";
-const mockPhoneChatId = "12133734253@c.us";
-const mockIdMessage = "1763115112345";
-const mockReceiptId = 1234567;
-const mockIncomingIdMessage = "INCOMING1";
+const MOCK_ID_INSTANCE = "1234567890";
+const MOCK_API_TOKEN_INSTANCE = "test-token";
+const MOCK_CHAT_ID = "123456789012345@lid";
+const MOCK_PHONE_CHAT_ID = "12133734253@c.us";
+const MOCK_ID_MESSAGE = "1763115112345";
+const MOCK_RECEIPT_ID = 1234567;
+const MOCK_INCOMING_ID_MESSAGE = "INCOMING1";
 
 async function mockSetSettings(page: Page) {
   await page.route("**/setSettings/**", async (route) => {
@@ -23,7 +23,7 @@ async function mockCheckAccount(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      json: { existsWhatsapp: true, chatId: mockChatId },
+      json: { existsWhatsapp: true, chatId: MOCK_CHAT_ID },
     });
   });
 }
@@ -33,8 +33,8 @@ async function openChat(page: Page) {
   await mockCheckAccount(page);
   await page.goto("/green-api");
 
-  await page.getByLabel("id Instance").fill(mockIdInstance);
-  await page.getByLabel("api Token Instance").fill(mockApiTokenInstance);
+  await page.getByLabel("id Instance").fill(MOCK_ID_INSTANCE);
+  await page.getByLabel("api Token Instance").fill(MOCK_API_TOKEN_INSTANCE);
   await page.getByRole("button", { name: "Submit" }).click();
   await expect(page).toHaveURL("/phone-number");
 
@@ -46,7 +46,7 @@ async function openChat(page: Page) {
 async function mockSendMessage(
   page: Page,
   status = 200,
-  json: unknown = { idMessage: mockIdMessage },
+  json: unknown = { idMessage: MOCK_ID_MESSAGE },
 ) {
   await page.route("**/sendMessage/**", async (route) => {
     await route.fulfill({
@@ -79,11 +79,11 @@ function incomingNotification(overrides?: {
   receiptId?: number;
 }) {
   return {
-    receiptId: overrides?.receiptId ?? mockReceiptId,
+    receiptId: overrides?.receiptId ?? MOCK_RECEIPT_ID,
     body: {
       typeWebhook: overrides?.typeWebhook ?? "incomingMessageReceived",
-      idMessage: overrides?.idMessage ?? mockIncomingIdMessage,
-      senderData: { chatId: overrides?.chatId ?? mockChatId },
+      idMessage: overrides?.idMessage ?? MOCK_INCOMING_ID_MESSAGE,
+      senderData: { chatId: overrides?.chatId ?? MOCK_CHAT_ID },
       messageData: {
         typeMessage: "textMessage",
         textMessageData: { textMessage: overrides?.text ?? "hi" },
@@ -92,21 +92,24 @@ function incomingNotification(overrides?: {
   };
 }
 
-async function mockReceiveQueue(page: Page, items: unknown[]) {
+async function mockReceiveQueue(page: Page, notifications: unknown[]) {
+  let nextIndex = 0;
   const deletedUrls: string[] = [];
 
   await page.route("**/receiveNotification/**", async (route) => {
-    const item = items.shift();
-
-    if (item === undefined) {
+    if (nextIndex >= notifications.length) {
       await route.fulfill({ status: 200, body: "" });
+
       return;
     }
+
+    const notification = notifications[nextIndex];
+    nextIndex += 1;
 
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      json: item,
+      json: notification,
     });
   });
 
@@ -172,7 +175,7 @@ test.describe("Chat page", () => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        json: { idMessage: mockIdMessage },
+        json: { idMessage: MOCK_ID_MESSAGE },
       });
     });
 
@@ -185,7 +188,7 @@ test.describe("Chat page", () => {
     await expect(page.getByText("hello")).toBeVisible();
     await expect(page.locator('[data-slot="message"][data-align="end"]')).toContainText("hello");
     await expect(composer).toHaveValue("");
-    expect(sentBody).toEqual({ chatId: mockChatId, message: "hello" });
+    expect(sentBody).toEqual({ chatId: MOCK_CHAT_ID, message: "hello" });
   });
 
   test("should send the typed message when Shift+Enter is pressed", async ({ page }) => {
@@ -197,7 +200,7 @@ test.describe("Chat page", () => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        json: { idMessage: mockIdMessage },
+        json: { idMessage: MOCK_ID_MESSAGE },
       });
     });
 
@@ -210,7 +213,7 @@ test.describe("Chat page", () => {
     await expect(page.getByText("hello")).toBeVisible();
     await expect(page.locator('[data-slot="message"][data-align="end"]')).toContainText("hello");
     await expect(composer).toHaveValue("");
-    expect(sentBody).toEqual({ chatId: mockChatId, message: "hello" });
+    expect(sentBody).toEqual({ chatId: MOCK_CHAT_ID, message: "hello" });
   });
 
   test("should insert a newline and not send when Enter is pressed", async ({ page }) => {
@@ -221,7 +224,7 @@ test.describe("Chat page", () => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        json: { idMessage: mockIdMessage },
+        json: { idMessage: MOCK_ID_MESSAGE },
       });
     });
 
@@ -253,8 +256,8 @@ test.describe("Chat page", () => {
     const send = page.getByRole("button", { name: "Send" });
     const overflowLineCount = 16;
 
-    for (let index = 1; index <= overflowLineCount; index += 1) {
-      await composer.fill(`line-${index}`);
+    for (let i = 1; i <= overflowLineCount; i += 1) {
+      await composer.fill(`line-${i}`);
       await send.click();
       await expect(composer).toHaveValue("");
     }
@@ -276,6 +279,7 @@ test.describe("Chat page", () => {
 
     expect(lastBox).not.toBeNull();
     expect(composerBox).not.toBeNull();
+    // boundingBox is non-null after the assertions above
     expect(composerBox!.y - (lastBox!.y + lastBox!.height)).toBeLessThan(80);
   });
 
@@ -295,8 +299,8 @@ test.describe("Chat page", () => {
     const send = page.getByRole("button", { name: "Send" });
     const overflowLineCount = 16;
 
-    for (let index = 1; index <= overflowLineCount; index += 1) {
-      await composer.fill(`line-${index}`);
+    for (let i = 1; i <= overflowLineCount; i += 1) {
+      await composer.fill(`line-${i}`);
       await send.click();
       await expect(composer).toHaveValue("");
     }
@@ -358,7 +362,7 @@ test.describe("Chat page receiving", () => {
     await expect(page.getByText("No messages yet")).toHaveCount(0);
     await expect(page.locator('[data-slot="message"][data-align="start"]')).toContainText("hi");
     await expect
-      .poll(() => deletedUrls.some((url) => url.includes(`/${mockReceiptId}`)))
+      .poll(() => deletedUrls.some((url) => url.includes(`/${MOCK_RECEIPT_ID}`)))
       .toBe(true);
   });
 
@@ -385,8 +389,8 @@ test.describe("Chat page receiving", () => {
     const send = page.getByRole("button", { name: "Send" });
     const overflowLineCount = 16;
 
-    for (let index = 1; index <= overflowLineCount; index += 1) {
-      await composer.fill(`line-${index}`);
+    for (let i = 1; i <= overflowLineCount; i += 1) {
+      await composer.fill(`line-${i}`);
       await send.click();
       await expect(composer).toHaveValue("");
     }
@@ -428,7 +432,7 @@ test.describe("Chat page receiving", () => {
 
   test("should show incoming text when the webhook chatId is the phone JID", async ({ page }) => {
     const deletedUrls = await mockReceiveQueue(page, [
-      incomingNotification({ chatId: mockPhoneChatId, text: "from-phone-jid" }),
+      incomingNotification({ chatId: MOCK_PHONE_CHAT_ID, text: "from-phone-jid" }),
     ]);
 
     await openChat(page);
@@ -438,7 +442,7 @@ test.describe("Chat page receiving", () => {
       "from-phone-jid",
     );
     await expect
-      .poll(() => deletedUrls.some((url) => url.includes(`/${mockReceiptId}`)))
+      .poll(() => deletedUrls.some((url) => url.includes(`/${MOCK_RECEIPT_ID}`)))
       .toBe(true);
   });
 
@@ -454,7 +458,7 @@ test.describe("Chat page receiving", () => {
     await openChat(page);
 
     await expect
-      .poll(() => deletedUrls.some((url) => url.includes(`/${mockReceiptId}`)))
+      .poll(() => deletedUrls.some((url) => url.includes(`/${MOCK_RECEIPT_ID}`)))
       .toBe(true);
     await expect(page.getByText("No messages yet")).toBeVisible();
     await expect(page.getByText("other-peer-text")).toHaveCount(0);
@@ -473,7 +477,7 @@ test.describe("Chat page receiving", () => {
         body: {
           typeWebhook: "incomingMessageReceived",
           idMessage: "IMAGE1",
-          senderData: { chatId: mockChatId },
+          senderData: { chatId: MOCK_CHAT_ID },
           messageData: {
             typeMessage: "imageMessage",
             imageMessageData: { downloadUrl: "https://example.com/photo.jpg" },

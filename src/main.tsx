@@ -9,6 +9,7 @@ if (import.meta.env.DEV) connectLogger();
 redirectToGreenApiOnLoad();
 
 const root = document.querySelector("#app");
+
 if (!root) throw new Error("Missing #app");
 
 createRoot(root).render(<App />);

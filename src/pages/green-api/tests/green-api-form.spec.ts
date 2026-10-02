@@ -16,6 +16,7 @@ async function persistedValue(page: Page, key: string) {
 
     if (stored === null) return null;
 
+    // Reatom persist envelope; tests only read the stored atom state
     return JSON.parse(stored).data as unknown;
   }, key);
 }

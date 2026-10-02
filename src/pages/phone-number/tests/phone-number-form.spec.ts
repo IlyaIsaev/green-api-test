@@ -1,14 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const mockChatId = "123456789012345@lid";
+const MOCK_ID_INSTANCE = "1234567890";
+const MOCK_API_TOKEN_INSTANCE = "test-token";
+const MOCK_CHAT_ID = "123456789012345@lid";
 
-async function mockCheckAccount(page: Page, doesWhatsappExist: boolean) {
+async function mockCheckAccount(page: Page, hasWhatsapp: boolean) {
   await page.route("**/checkWhatsapp/**", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      json: doesWhatsappExist
-        ? { existsWhatsapp: true, chatId: mockChatId }
+      json: hasWhatsapp
+        ? { existsWhatsapp: true, chatId: MOCK_CHAT_ID }
         : { existsWhatsapp: false },
     });
   });
@@ -42,8 +44,8 @@ async function submitGreenApiCredentials(page: Page) {
   await mockSetSettings(page);
   await page.goto("/green-api");
 
-  await page.getByLabel("id Instance").fill("1234567890");
-  await page.getByLabel("api Token Instance").fill("test-token");
+  await page.getByLabel("id Instance").fill(MOCK_ID_INSTANCE);
+  await page.getByLabel("api Token Instance").fill(MOCK_API_TOKEN_INSTANCE);
 
   await page.getByRole("button", { name: "Submit" }).click();
 
@@ -236,7 +238,7 @@ test.describe("Phone number form", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          json: { existsWhatsapp: true, chatId: mockChatId },
+          json: { existsWhatsapp: true, chatId: MOCK_CHAT_ID },
         });
       });
 

@@ -32,10 +32,10 @@ import { Spinner } from "@/shared/components/ui/spinner";
 import { messages, newMessage, type ChatMessage } from "../model/chat";
 
 function FollowLiveEdge({
-  count,
+  messageCount,
   lastFrom,
 }: {
-  count: number;
+  messageCount: number;
   lastFrom: ChatMessage["from"] | undefined;
 }) {
   const { scrollToEnd } = useMessageScroller();
@@ -47,10 +47,10 @@ function FollowLiveEdge({
   }, [end]);
 
   useLayoutEffect(() => {
-    if (count === 0) return;
+    if (messageCount === 0) return;
 
     if (lastFrom === "outgoing" || atLiveEdgeRef.current) scrollToEnd({ behavior: "auto" });
-  }, [count, lastFrom, scrollToEnd]);
+  }, [messageCount, lastFrom, scrollToEnd]);
 
   return null;
 }
@@ -80,8 +80,8 @@ function ChatBubble({ message }: { message: ChatMessage }) {
 
 export const ChatPage = reatomComponent(() => {
   const chatMessages = messages();
-  const isBusy = !messages.send.ready();
-  const canSend = newMessage().trim().length > 0 && !isBusy;
+  const isSending = !messages.send.ready();
+  const canSend = newMessage().trim().length > 0 && !isSending;
 
   return (
     <main className="mx-auto flex min-h-svh w-full items-center justify-center p-6">
@@ -102,7 +102,7 @@ export const ChatPage = reatomComponent(() => {
               ) : (
                 <MessageScroller>
                   <MessageScrollerViewport>
-                    <MessageScrollerContent aria-busy={isBusy} className="p-(--card-spacing)">
+                    <MessageScrollerContent aria-busy={isSending} className="p-(--card-spacing)">
                       {chatMessages.map((message) => (
                         <ChatBubble key={message.id} message={message} />
                       ))}
@@ -110,7 +110,7 @@ export const ChatPage = reatomComponent(() => {
                   </MessageScrollerViewport>
                   <MessageScrollerButton />
                   <FollowLiveEdge
-                    count={chatMessages.length}
+                    messageCount={chatMessages.length}
                     lastFrom={chatMessages.at(-1)?.from}
                   />
                 </MessageScroller>
@@ -154,7 +154,7 @@ export const ChatPage = reatomComponent(() => {
                       className="ml-auto"
                       disabled={!canSend}
                     >
-                      {isBusy ? <Spinner /> : <ArrowUpIcon />}
+                      {isSending ? <Spinner /> : <ArrowUpIcon />}
                       <span className="sr-only">Send</span>
                     </InputGroupButton>
                   </InputGroupAddon>

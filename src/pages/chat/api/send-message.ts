@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { universalApiUrl } from "@/shared/green-api";
+import { UNIVERSAL_API_URL } from "@/shared/green-api";
 
 const sendMessageResponseSchema = v.object({
   idMessage: v.string(),
@@ -19,12 +19,12 @@ export async function sendMessage({
   chatId,
   message,
   signal,
-}: SendMessage) {
+}: SendMessage): Promise<v.InferOutput<typeof sendMessageResponseSchema>> {
   if (!idInstance || !apiTokenInstance) throw new Error("Missing Green API credentials");
 
   if (!chatId) throw new Error("Missing chat");
 
-  const url = `${universalApiUrl}/waInstance${encodeURIComponent(idInstance)}/sendMessage/${encodeURIComponent(apiTokenInstance)}`;
+  const url = `${UNIVERSAL_API_URL}/waInstance${encodeURIComponent(idInstance)}/sendMessage/${encodeURIComponent(apiTokenInstance)}`;
 
   const response = await fetch(url, {
     method: "POST",

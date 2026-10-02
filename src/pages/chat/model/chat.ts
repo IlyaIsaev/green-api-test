@@ -36,6 +36,17 @@ const incomingMessageBodySchema = v.object({
   }),
 });
 
+const addToMessages = (messages: readonly ChatMessage[], message: ChatMessage): ChatMessage[] => [
+  ...messages,
+  message,
+];
+
+const addIncomingToMessages = (messages: ChatMessage[], message: ChatMessage): ChatMessage[] => {
+  if (messages.some((existing) => existing.id === message.id)) return messages;
+
+  return addToMessages(messages, message);
+};
+
 // Bind on conversation id (senderData.chatId), not sender. Match CheckWhatsapp lid and phone @c.us.
 function incomingChatMessage(
   body: unknown,
@@ -75,7 +86,7 @@ export const messages = atom<ChatMessage[]>([], "messages")
 
       if (!message) return;
 
-      const result = await wrap(
+      const sentMessage = await wrap(
         sendMessage({
           idInstance: idInstance(),
           apiTokenInstance: apiTokenInstance(),
@@ -85,7 +96,14 @@ export const messages = atom<ChatMessage[]>([], "messages")
         }),
       );
 
-      target.set((list) => [...list, { id: result.idMessage, text: message, from: "outgoing" }]);
+      target.set((messages) =>
+        addToMessages(messages, {
+          id: sentMessage.idMessage,
+          text: message,
+          from: "outgoing",
+        }),
+      );
+
       newMessage.set("");
     }, `${target.name}.send`).extend(withAsync(), withAbort("first-in-win"));
 
@@ -114,28 +132,26 @@ export const messages = atom<ChatMessage[]>([], "messages")
             }),
           );
 
-          if (notification) {
-            const incoming = incomingChatMessage(
-              notification.body,
-              chatId().trim(),
-              phoneNumber().trim(),
-            );
+          if (!notification) continue;
 
-            if (incoming) {
-              target.set((list) =>
-                list.some((message) => message.id === incoming.id) ? list : [...list, incoming],
-              );
-            }
+          const incoming = incomingChatMessage(
+            notification.body,
+            chatId().trim(),
+            phoneNumber().trim(),
+          );
 
-            await wrap(
-              deleteNotification({
-                idInstance: idInstance(),
-                apiTokenInstance: apiTokenInstance(),
-                receiptId: notification.receiptId,
-                signal: abortVar.require().signal,
-              }),
-            );
+          if (incoming) {
+            target.set((messages) => addIncomingToMessages(messages, incoming));
           }
+
+          await wrap(
+            deleteNotification({
+              idInstance: idInstance(),
+              apiTokenInstance: apiTokenInstance(),
+              receiptId: notification.receiptId,
+              signal: abortVar.require().signal,
+            }),
+          );
         } catch (error) {
           if (isAbort(error)) return;
 
@@ -150,6 +166,6 @@ export const messages = atom<ChatMessage[]>([], "messages")
     }),
   );
 
-export const resetConversation = action(() => {
+export const resetMessages = action(() => {
   messages.set([]);
-}, "resetConversation");
+}, "resetMessages");

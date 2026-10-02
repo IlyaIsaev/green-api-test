@@ -1,13 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const mockIdInstance = "1234567890";
-const mockApiTokenInstance = "test-token";
-const mockPhoneNumber = "12133734253";
-const mockChatId = "123456789012345@lid";
+const MOCK_ID_INSTANCE = "1234567890";
+const MOCK_API_TOKEN_INSTANCE = "test-token";
+const MOCK_PHONE_NUMBER = "12133734253";
+const MOCK_CHAT_ID = "123456789012345@lid";
 
-function persistRecord(data: string) {
+function persistRecord(atomState: string) {
   return JSON.stringify({
-    data,
+    data: atomState,
     id: 0,
     timestamp: Date.now(),
     version: 0,
@@ -35,8 +35,8 @@ test.describe("Root redirect", () => {
     page,
   }) => {
     await seedSession(page, {
-      idInstance: persistRecord(mockIdInstance),
-      apiTokenInstance: persistRecord(mockApiTokenInstance),
+      idInstance: persistRecord(MOCK_ID_INSTANCE),
+      apiTokenInstance: persistRecord(MOCK_API_TOKEN_INSTANCE),
     });
 
     await page.goto("/");
@@ -49,10 +49,10 @@ test.describe("Root redirect", () => {
     page,
   }) => {
     await seedSession(page, {
-      idInstance: persistRecord(mockIdInstance),
-      apiTokenInstance: persistRecord(mockApiTokenInstance),
-      phoneNumber: persistRecord(mockPhoneNumber),
-      chatId: persistRecord(mockChatId),
+      idInstance: persistRecord(MOCK_ID_INSTANCE),
+      apiTokenInstance: persistRecord(MOCK_API_TOKEN_INSTANCE),
+      phoneNumber: persistRecord(MOCK_PHONE_NUMBER),
+      chatId: persistRecord(MOCK_CHAT_ID),
     });
 
     await page.goto("/");
@@ -79,10 +79,10 @@ test.describe("Root redirect", () => {
     page,
   }) => {
     await seedSession(page, {
-      idInstance: persistRecord(mockIdInstance),
-      apiTokenInstance: persistRecord(mockApiTokenInstance),
-      phoneNumber: persistRecord(mockPhoneNumber),
-      chatId: persistRecord(mockChatId),
+      idInstance: persistRecord(MOCK_ID_INSTANCE),
+      apiTokenInstance: persistRecord(MOCK_API_TOKEN_INSTANCE),
+      phoneNumber: persistRecord(MOCK_PHONE_NUMBER),
+      chatId: persistRecord(MOCK_CHAT_ID),
     });
 
     await page.goto("/chat");
@@ -95,8 +95,8 @@ test.describe("Root redirect", () => {
     page,
   }) => {
     await seedSession(page, {
-      idInstance: persistRecord(mockIdInstance),
-      apiTokenInstance: persistRecord(mockApiTokenInstance),
+      idInstance: persistRecord(MOCK_ID_INSTANCE),
+      apiTokenInstance: persistRecord(MOCK_API_TOKEN_INSTANCE),
     });
 
     await page.goto("/phone-number");

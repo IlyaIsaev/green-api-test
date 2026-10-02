@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { universalApiUrl } from "@/shared/green-api";
+import { UNIVERSAL_API_URL } from "@/shared/green-api";
 
 const setSettingsResponseSchema = v.object({
   saveSettings: v.boolean(),
@@ -11,10 +11,14 @@ type SetSettings = {
   signal: AbortSignal;
 };
 
-export async function setSettings({ idInstance, apiTokenInstance, signal }: SetSettings) {
+export async function setSettings({
+  idInstance,
+  apiTokenInstance,
+  signal,
+}: SetSettings): Promise<v.InferOutput<typeof setSettingsResponseSchema>> {
   if (!idInstance || !apiTokenInstance) throw new Error("Missing Green API credentials");
 
-  const url = `${universalApiUrl}/waInstance${encodeURIComponent(idInstance)}/setSettings/${encodeURIComponent(apiTokenInstance)}`;
+  const url = `${UNIVERSAL_API_URL}/waInstance${encodeURIComponent(idInstance)}/setSettings/${encodeURIComponent(apiTokenInstance)}`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -36,9 +40,8 @@ export async function setSettings({ idInstance, apiTokenInstance, signal }: SetS
 
   const parsed = v.safeParse(setSettingsResponseSchema, body);
 
-  if (!parsed.success || parsed.output.saveSettings !== true) {
+  if (!parsed.success || parsed.output.saveSettings !== true)
     throw new Error("Could not save settings");
-  }
 
   return parsed.output;
 }
